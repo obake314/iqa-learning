@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225">
+  <rect width="400" height="225" fill="#0d1635"/>
+  <!-- Subtle grid dots -->
+  <circle cx="60"  cy="40"  r="1.5" fill="#3777ff" opacity="0.25"/>
+  <circle cx="120" cy="40"  r="1.5" fill="#3777ff" opacity="0.25"/>
+  <circle cx="180" cy="40"  r="1.5" fill="#3777ff" opacity="0.25"/>
+  <circle cx="240" cy="40"  r="1.5" fill="#3777ff" opacity="0.25"/>
+  <circle cx="300" cy="40"  r="1.5" fill="#3777ff" opacity="0.25"/>
+  <circle cx="360" cy="40"  r="1.5" fill="#3777ff" opacity="0.25"/>
+  <circle cx="60"  cy="185" r="1.5" fill="#3777ff" opacity="0.25"/>
+  <circle cx="360" cy="185" r="1.5" fill="#3777ff" opacity="0.25"/>
+  <!-- CIA triad: three overlapping circles -->
+  <circle cx="165" cy="86"  r="72" fill="#3777ff" opacity="0.82"/>
+  <circle cx="235" cy="86"  r="72" fill="#dd2280" opacity="0.82"/>
+  <circle cx="200" cy="152" r="72" fill="#ffb5c2" opacity="0.72"/>
+  <!-- Center highlight -->
+  <circle cx="200" cy="108" r="20" fill="white" opacity="0.12"/>
+</svg>

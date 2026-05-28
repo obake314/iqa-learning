@@ -368,6 +368,9 @@ textarea.form-input {
 	padding: 14px;
 	justify-self: end;
 }
+.thumbnail-art.lesson:has(img) {
+	padding: 0;
+}
 .thumbnail-art.tone-0 { background: linear-gradient(135deg, #3777ff, #111d4a); }
 .thumbnail-art.tone-1 { background: linear-gradient(135deg, #dd2280, #111d4a); }
 .thumbnail-art.tone-2 { background: linear-gradient(135deg, #111d4a, #3777ff); }

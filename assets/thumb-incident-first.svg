@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225">
+  <rect width="400" height="225" fill="#0d1635"/>
+  <!-- Pulse rings emanating outward -->
+  <circle cx="200" cy="108" r="96" stroke="#dd2280" stroke-width="1.5" fill="none" opacity="0.2"/>
+  <circle cx="200" cy="108" r="72" stroke="#dd2280" stroke-width="2"   fill="none" opacity="0.36"/>
+  <circle cx="200" cy="108" r="50" stroke="#dd2280" stroke-width="2.5" fill="none" opacity="0.55"/>
+  <!-- Warning triangle -->
+  <path d="M200,46 L272,175 L128,175 Z" fill="#dd2280"/>
+  <!-- Triangle inner shadow -->
+  <path d="M200,60 L262,167 L138,167 Z" fill="#c01870"/>
+  <!-- Exclamation bar -->
+  <rect x="193" y="82" width="14" height="52" rx="5" fill="white"/>
+  <!-- Exclamation dot -->
+  <circle cx="200" cy="153" r="8.5" fill="white"/>
+</svg>

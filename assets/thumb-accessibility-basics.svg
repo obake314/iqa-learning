@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225">
+  <rect width="400" height="225" fill="#3777ff"/>
+  <!-- Radiating arcs (background) -->
+  <circle cx="200" cy="108" r="92" stroke="white" stroke-width="1.5" fill="none" opacity="0.16"/>
+  <circle cx="200" cy="108" r="68" stroke="white" stroke-width="1.5" fill="none" opacity="0.24"/>
+  <circle cx="200" cy="108" r="46" stroke="white" stroke-width="1.5" fill="none" opacity="0.36"/>
+  <!-- Person: head -->
+  <circle cx="200" cy="60" r="22" fill="white"/>
+  <!-- Person: body (torso) -->
+  <line x1="200" y1="82" x2="200" y2="150" stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <!-- Person: left arm (outstretched) -->
+  <line x1="196" y1="106" x2="146" y2="90" stroke="white" stroke-width="15" stroke-linecap="round"/>
+  <!-- Person: right arm (outstretched) -->
+  <line x1="204" y1="106" x2="254" y2="90" stroke="white" stroke-width="15" stroke-linecap="round"/>
+  <!-- Person: left leg -->
+  <line x1="196" y1="150" x2="174" y2="196" stroke="white" stroke-width="15" stroke-linecap="round"/>
+  <!-- Person: right leg -->
+  <line x1="204" y1="150" x2="226" y2="196" stroke="white" stroke-width="15" stroke-linecap="round"/>
+</svg>

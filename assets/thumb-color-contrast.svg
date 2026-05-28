@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225">
+  <defs>
+    <clipPath id="card-dark">
+      <rect x="28" y="24" width="160" height="177" rx="10"/>
+    </clipPath>
+    <clipPath id="card-light">
+      <rect x="212" y="24" width="160" height="177" rx="10"/>
+    </clipPath>
+  </defs>
+  <rect width="400" height="225" fill="#0d1635"/>
+
+  <!-- Dark card -->
+  <g clip-path="url(#card-dark)">
+    <rect x="28" y="24" width="160" height="177" fill="#111d4a"/>
+    <!-- Header accent -->
+    <rect x="28" y="24" width="160" height="40" fill="#3777ff"/>
+    <!-- Text lines -->
+    <rect x="44" y="80"  width="128" height="11" rx="4" fill="white" opacity="0.9"/>
+    <rect x="44" y="99"  width="104" height="9"  rx="4" fill="white" opacity="0.68"/>
+    <rect x="44" y="116" width="116" height="9"  rx="4" fill="white" opacity="0.52"/>
+    <!-- Input outline -->
+    <rect x="44" y="140" width="128" height="28" rx="7" fill="none" stroke="white" stroke-width="2" opacity="0.7"/>
+    <!-- Submit button -->
+    <rect x="44" y="182" width="128" height="11" rx="5" fill="#dd2280"/>
+  </g>
+
+  <!-- Light card -->
+  <g clip-path="url(#card-light)">
+    <rect x="212" y="24" width="160" height="177" fill="#edf2ff"/>
+    <!-- Header accent -->
+    <rect x="212" y="24" width="160" height="40" fill="#111d4a"/>
+    <!-- Text lines -->
+    <rect x="228" y="80"  width="128" height="11" rx="4" fill="#111d4a" opacity="0.85"/>
+    <rect x="228" y="99"  width="104" height="9"  rx="4" fill="#111d4a" opacity="0.62"/>
+    <rect x="228" y="116" width="116" height="9"  rx="4" fill="#111d4a" opacity="0.46"/>
+    <!-- Input outline -->
+    <rect x="228" y="140" width="128" height="28" rx="7" fill="none" stroke="#111d4a" stroke-width="2" opacity="0.55"/>
+    <!-- Submit button -->
+    <rect x="228" y="182" width="128" height="11" rx="5" fill="#3777ff"/>
+  </g>
+</svg>
