@@ -1,5 +1,8 @@
 // =============================================================
-//  設定ファイル — IQA Learning Platform
+//  本番設定ファイル — IQA Learning Platform
+//
+//  共通仕様は elearning-config-base.js で管理します。
+//  ここを直接編集せず、共通設定は base ファイルを変更してください。
 //
 //  courses/ 配下のディレクトリを自動スキャンして講座を構築します。
 //  新しい講座を追加するには:
@@ -9,30 +12,16 @@
 //    → 開発サーバーをリロードすると自動で認識されます
 // =============================================================
 
+import { BASE_SITE_CONFIG } from "./elearning-config-base.js";
+
 const courseModules = import.meta.glob("./courses/*/index.js", { eager: true });
 
 export const SITE_CONFIG = {
-  name: "IQA Learning",
-  subtitle: "IQA Learning Platform",
-  passingScore: 70,
-  catalogVersion: "v5",
-
-  theme: {
-    accent: "#3777ff",
-    accent2: "#dd2280",
-    accent3: "#111d4a",
-    headerLogoHighlight: "#ffb5c2",
-  },
-
+  ...BASE_SITE_CONFIG,
   storagePrefix: "iqa_learning",
-
-  demoAccounts: [
-    { label: "開発者", role: "developer", email: "dev@iqa-learning.example", password: "dev12345" },
-    { label: "メンター", role: "admin", email: "mentor@iqa-learning.example", password: "mentor123" },
-    { label: "受講者", role: "user", email: "learner@iqa-learning.example", password: "learner1" },
-  ],
 };
 
 export const COURSES = Object.entries(courseModules)
   .sort(([a], [b]) => a.localeCompare(b))
   .map(([, mod]) => mod.default);
+
