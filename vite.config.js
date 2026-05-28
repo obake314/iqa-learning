@@ -90,8 +90,9 @@ export default defineConfig({
           if (req.method === "POST" && req.url === "/api/courses") {
             const body = await readBody(req);
             const { title = "新しい講座", desc = "", category = "未分類", owner = "",
+                    thumbnail = "", assignedAdminId = "", allowedUserIds = [], accessMode = "open",
                     lessonTitle = "最初のレッスン", lessonDesc = "", duration = "未設定",
-                    youtubeId = "", summary = "", workPrompt = "このレッスンで学んだことを提出してください。" } = body;
+                    youtubeId = "", videoUrl = "", summary = "", workPrompt = "このレッスンで学んだことを提出してください。" } = body;
 
             const courseNum = nextNum(COURSES_DIR);
             const courseSlug = slugify(title);
@@ -104,9 +105,9 @@ export default defineConfig({
             const lessonDir = path.join(courseDir, "lessons", lessonDirName);
 
             writeFile(path.join(courseDir, "course.js"),
-              `export const course = {\n  id: ${jsStr(courseId)},\n  title: ${jsStr(title)},\n  desc: ${jsStr(desc)},\n  category: ${jsStr(category)},\n  owner: ${jsStr(owner)},\n};\n`);
+              `export const course = {\n  id: ${jsStr(courseId)},\n  title: ${jsStr(title)},\n  desc: ${jsStr(desc)},\n  category: ${jsStr(category)},\n  owner: ${jsStr(owner)},\n  thumbnail: ${jsStr(thumbnail)},\n  assignedAdminId: ${jsStr(assignedAdminId)},\n  accessMode: ${jsStr(accessMode)},\n  allowedUserIds: ${JSON.stringify(Array.isArray(allowedUserIds) ? allowedUserIds : [])},\n};\n`);
             writeFile(path.join(lessonDir, "lesson.js"),
-              `export const lesson = {\n  id: ${jsStr(lessonId)},\n  title: ${jsStr(lessonTitle)},\n  desc: ${jsStr(lessonDesc)},\n  duration: ${jsStr(duration)},\n  youtubeId: ${jsStr(youtubeId)},\n  workPrompt: ${jsStr(workPrompt)},\n};\n`);
+              `export const lesson = {\n  id: ${jsStr(lessonId)},\n  title: ${jsStr(lessonTitle)},\n  desc: ${jsStr(lessonDesc)},\n  duration: ${jsStr(duration)},\n  videoUrl: ${jsStr(videoUrl || youtubeId)},\n  workPrompt: ${jsStr(workPrompt)},\n};\n`);
             writeFile(path.join(lessonDir, "summary.js"),
               `export const summary = ${jsStr(summary || "サマリーをここに記述してください。")};\n`);
             writeFile(path.join(lessonDir, "questions.js"), `export const questions = [];\n`);
@@ -124,7 +125,7 @@ export default defineConfig({
             const courseId = decodeURIComponent(addLessonMatch[1]);
             const body = await readBody(req);
             const { title = "新しいレッスン", desc = "", duration = "未設定",
-                    youtubeId = "", summary = "", workPrompt = "このレッスンで学んだことを提出してください。" } = body;
+                    youtubeId = "", videoUrl = "", thumbnail = "", summary = "", workPrompt = "このレッスンで学んだことを提出してください。" } = body;
 
             const courseDirName = findCourseDir(courseId);
             if (!courseDirName) { res.writeHead(404); res.end(JSON.stringify({ error: "course not found" })); return; }
@@ -138,7 +139,7 @@ export default defineConfig({
             const lessonDir = path.join(lessonsDir, lessonDirName);
 
             writeFile(path.join(lessonDir, "lesson.js"),
-              `export const lesson = {\n  id: ${jsStr(lessonId)},\n  title: ${jsStr(title)},\n  desc: ${jsStr(desc)},\n  duration: ${jsStr(duration)},\n  youtubeId: ${jsStr(youtubeId)},\n  workPrompt: ${jsStr(workPrompt)},\n};\n`);
+              `export const lesson = {\n  id: ${jsStr(lessonId)},\n  title: ${jsStr(title)},\n  desc: ${jsStr(desc)},\n  duration: ${jsStr(duration)},\n  videoUrl: ${jsStr(videoUrl || youtubeId)},\n  thumbnail: ${jsStr(thumbnail)},\n  workPrompt: ${jsStr(workPrompt)},\n};\n`);
             writeFile(path.join(lessonDir, "summary.js"),
               `export const summary = ${jsStr(summary || "サマリーをここに記述してください。")};\n`);
             writeFile(path.join(lessonDir, "questions.js"), `export const questions = [];\n`);

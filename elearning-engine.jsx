@@ -58,6 +58,7 @@ const canTakeCourse = (user, course) => {
   if (!user || !course) return false;
   if (canManageAccess(user)) return true;
   const allowed = Array.isArray(course.allowedUserIds) ? course.allowedUserIds : [];
+  if (course.accessMode === "restricted") return allowed.includes(user.id);
   return allowed.length === 0 || allowed.includes(user.id);
 };
 const initialsFor = (name = "") => name.trim().slice(0, 2).toUpperCase() || "IQA";
@@ -575,10 +576,13 @@ function LessonEditorPanel({ lesson, courseId, catalog, setCatalog, onDone, isNe
 
 function CourseEditorPanel({ course, catalog, setCatalog, onDone, isNew = false }) {
   const adminUsers = getUsers().filter((u) => u.role === "admin");
+  const learnerUsers = getUsers().filter((u) => u.role === "user");
   const [draft, setDraft] = useState({
     title: course?.title || "", desc: course?.desc || "",
     category: course?.category || "", owner: course?.owner || "",
     thumbnail: course?.thumbnail || "", assignedAdminId: course?.assignedAdminId || "",
+    allowedUserIds: Array.isArray(course?.allowedUserIds) ? course.allowedUserIds : [],
+    accessMode: course?.accessMode || "open",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -614,6 +618,33 @@ function CourseEditorPanel({ course, catalog, setCatalog, onDone, isNew = false 
       </div>
       <ThumbnailField id="ce-thumb" value={draft.thumbnail} onChange={d("thumbnail")} />
       <div className="form-group">
+        <label className="form-label">受講可能ユーザー</label>
+        <div className="access-grid compact">
+          {learnerUsers.map((learner) => {
+            const isAllOpen = draft.accessMode !== "restricted";
+            return (
+              <label className="check-row" key={learner.id}>
+                <input
+                  type="checkbox"
+                  checked={isAllOpen || draft.allowedUserIds.includes(learner.id)}
+                  onChange={() => setDraft((prev) => {
+                    const current = prev.accessMode === "restricted" ? prev.allowedUserIds || [] : [];
+                    const nextIds = prev.accessMode !== "restricted"
+                      ? learnerUsers.map((user) => user.id).filter((id) => id !== learner.id)
+                      : current.includes(learner.id)
+                      ? current.filter((id) => id !== learner.id)
+                      : [...current, learner.id];
+                    return { ...prev, accessMode: "restricted", allowedUserIds: nextIds };
+                  })}
+                />
+                <span>{learner.name}</span>
+              </label>
+            );
+          })}
+        </div>
+        <button className="link-btn" type="button" onClick={() => setDraft((prev) => ({ ...prev, accessMode: "open", allowedUserIds: [] }))}>全受講者に公開する</button>
+      </div>
+      <div className="form-group">
         <label className="form-label" htmlFor="ce-admin">担当管理者</label>
         <select id="ce-admin" className="form-input" value={draft.assignedAdminId} onChange={(e) => setDraft((p) => ({ ...p, assignedAdminId: e.target.value }))}>
           <option value="">未設定</option>
@@ -632,7 +663,8 @@ function CourseEditorPanel({ course, catalog, setCatalog, onDone, isNew = false 
 
 function Dashboard({ user, catalog, submissions, onSelect }) {
   const progress = getProgress();
-  const stats = calcStats(catalog, progress, user.id);
+  const visibleCatalog = catalog.filter((course) => canTakeCourse(user, course));
+  const stats = calcStats(visibleCatalog, progress, user.id);
   const pendingWork = submissions.filter((item) => item.userId === user.id && item.status === "submitted").length;
 
   return (
@@ -646,7 +678,7 @@ function Dashboard({ user, catalog, submissions, onSelect }) {
         <Stat value={pendingWork} label="添削待ちワーク" />
       </div>
       <ul className="course-grid">
-        {catalog.map((course) => {
+        {visibleCatalog.map((course) => {
           const courseLessons = course.lessons || [];
           const done = courseLessons.filter((lesson) => isLessonCompleted(getLessonProgress(progress, user.id, course.id, lesson.id))).length;
           const pct = Math.round((done / Math.max(courseLessons.length, 1)) * 100);
@@ -1329,6 +1361,16 @@ function MentorAssignAdmin({ currentUser, catalog }) {
     setTimeout(() => setStatus(""), 2000);
   };
 
+  const release = (userId, courseId) => {
+    const key = mentorAssignmentKey(userId, courseId);
+    const next = { ...assignments };
+    delete next[key];
+    saveMentorAssignments(next);
+    setAssignments(next);
+    setStatus("担当を解除しました");
+    setTimeout(() => setStatus(""), 2000);
+  };
+
   const selfAssign = (userId, courseId) => {
     const myMentor = mentors.find((m) => m.userId === currentUser.id);
     if (!myMentor) { setStatus("先にプロフィールを設定してください"); return; }
@@ -1398,7 +1440,12 @@ function MentorAssignAdmin({ currentUser, catalog }) {
                       <td>{getMentorName(u.id, course.id)}</td>
                       <td>
                         {isMine
-                          ? <span className="pill done">担当中</span>
+                          ? (
+                            <div className="inline-actions">
+                              <span className="pill done">担当中</span>
+                              <button className="btn-secondary" style={{ fontSize: 11, padding: "4px 8px" }} onClick={() => release(u.id, course.id)}>担当解除</button>
+                            </div>
+                          )
                           : <button className="btn-small" style={{ fontSize: 11 }} onClick={() => selfAssign(u.id, course.id)}>担当する</button>
                         }
                       </td>
@@ -1544,6 +1591,64 @@ function MentorAdmin({ currentUser, catalog, myMentorId }) {
   );
 }
 
+function CourseAccessAdmin({ catalog, setCatalog }) {
+  const learners = getUsers().filter((user) => user.role === "user");
+  const [status, setStatus] = useState("");
+
+  const saveAccess = (courseId, allowedUserIds, accessMode = "restricted") => {
+    const next = catalogUpdateCourse(catalog, courseId, { allowedUserIds, accessMode });
+    saveCatalog(next);
+    setCatalog(next);
+    setStatus("受講設定を保存しました");
+    setTimeout(() => setStatus(""), 2000);
+  };
+
+  const toggleUser = (course, userId) => {
+    const allowed = Array.isArray(course.allowedUserIds) ? course.allowedUserIds : [];
+    const isOpen = course.accessMode !== "restricted";
+    const nextAllowed = isOpen
+      ? learners.map((learner) => learner.id).filter((id) => id !== userId)
+      : allowed.includes(userId)
+      ? allowed.filter((id) => id !== userId)
+      : [...allowed, userId];
+    saveAccess(course.id, nextAllowed, "restricted");
+  };
+
+  return (
+    <div className="stack">
+      {status && <Alert type="success">{status}</Alert>}
+      {catalog.map((course) => {
+        const allowed = Array.isArray(course.allowedUserIds) ? course.allowedUserIds : [];
+        const isAllOpen = course.accessMode !== "restricted";
+        return (
+          <section className="panel" key={course.id}>
+            <div className="toolbar">
+              <div>
+                <h2 style={{ margin: 0 }}>{course.title}</h2>
+                <p className="work-status">{isAllOpen ? "全受講者が受講できます" : `${allowed.length}名に公開中`}</p>
+              </div>
+              <button className="btn-secondary" onClick={() => saveAccess(course.id, [], "open")}>全員に公開</button>
+            </div>
+            <div className="access-grid">
+              {learners.map((learner) => (
+                <label className="check-row" key={learner.id}>
+                  <input
+                    type="checkbox"
+                    checked={isAllOpen || allowed.includes(learner.id)}
+                    onChange={() => toggleUser(course, learner.id)}
+                  />
+                  <span>{learner.name}</span>
+                  <span className="work-status">{learner.email}</span>
+                </label>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function MaterialAdmin({ catalog, setCatalog }) {
   // mode: "edit-lesson" | "new-lesson"
   const [mode, setMode] = useState("edit-lesson");
@@ -1557,7 +1662,7 @@ function MaterialAdmin({ catalog, setCatalog }) {
   const rightTitle = mode === "new-lesson" ? "レッスンを追加" : "レッスンを編集";
 
   return (
-    <div className="two-col">
+    <div className="material-layout">
       <section className="panel">
         <h2>講座 / レッスン選択</h2>
         <div className="lesson-list">
@@ -1764,10 +1869,12 @@ function DeveloperView({ catalog, setCatalog }) {
       <h1 className="page-title">開発者コンソール</h1>
       <div className="tabs" role="tablist" style={{ marginBottom: 20 }}>
         <button className={`tab-btn ${devTab === "courses" ? "active" : ""}`} onClick={() => setDevTab("courses")}>講座管理</button>
+        <button className={`tab-btn ${devTab === "access" ? "active" : ""}`} onClick={() => setDevTab("access")}>受講設定</button>
         <button className={`tab-btn ${devTab === "accounts" ? "active" : ""}`} onClick={() => setDevTab("accounts")}>アカウント管理</button>
       </div>
 
       {devTab === "accounts" && <AccountAdmin />}
+      {devTab === "access" && <CourseAccessAdmin catalog={catalog} setCatalog={setCatalog} />}
 
       {devTab === "courses" && (
         <>
@@ -1889,6 +1996,7 @@ export default function App() {
       view = "developer";
     } else if (segments[0] === "course" && segments[1]) {
       selectedCourse = catalog.find((c) => c.id === decodeURIComponent(segments[1]));
+      if (selectedCourse && !canTakeCourse(user, selectedCourse)) selectedCourse = null;
       if (selectedCourse && segments[2] === "lesson" && segments[3]) {
         selectedLesson = selectedCourse.lessons.find((l) => l.id === decodeURIComponent(segments[3]));
         view = selectedLesson ? "lesson" : "course";

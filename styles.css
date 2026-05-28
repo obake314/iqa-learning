@@ -532,6 +532,12 @@ textarea.form-input {
 	border: 0;
 	display: block;
 }
+.video-frame video {
+	width: 100%;
+	height: 100%;
+	display: block;
+	background: var(--accent3);
+}
 .video-empty {
 	height: 100%;
 	display: grid;
@@ -626,6 +632,24 @@ textarea.form-input {
 	border: 1px solid var(--line);
 	border-radius: var(--radius);
 }
+.progress-sequence {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 8px;
+	min-width: 360px;
+}
+.lesson-progress-cell {
+	border: 1px solid var(--line);
+	background: #ffffff;
+	padding: 10px;
+	display: grid;
+	gap: 5px;
+	align-content: start;
+}
+.lesson-progress-cell strong {
+	font-size: 13px;
+	line-height: 1.35;
+}
 table {
 	border-collapse: collapse;
 	width: 100%;
@@ -690,6 +714,39 @@ tr:last-child td {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 14px;
+}
+.material-layout {
+	display: grid;
+	grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+	gap: 14px;
+	align-items: start;
+}
+.access-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 8px;
+}
+.access-grid.compact {
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+.check-row {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 8px;
+	align-items: center;
+	border: 1px solid var(--line);
+	background: #ffffff;
+	padding: 9px 10px;
+}
+.check-row .work-status {
+	grid-column: 2;
+	margin: -4px 0 0;
+}
+.inline-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	flex-wrap: wrap;
 }
 .question-editor {
 	border: 1px solid var(--line);
@@ -783,7 +840,7 @@ tr:last-child td {
 	.page {
 		padding: 24px 16px;
 	}
-	.course-layout, .outline-layout, .two-col {
+	.course-layout, .outline-layout, .two-col, .material-layout {
 		grid-template-columns: 1fr;
 	}
 	.lesson-card {
