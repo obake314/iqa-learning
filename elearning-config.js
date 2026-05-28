@@ -18,10 +18,10 @@ export const SITE_CONFIG = {
   catalogVersion: "v5",
 
   theme: {
-    accent: "#1e40af",
-    accent2: "#b91c1c",
-    accent3: "#0369a1",
-    headerLogoHighlight: "#38bdf8",
+    accent: "#3777ff",
+    accent2: "#dd2280",
+    accent3: "#111d4a",
+    headerLogoHighlight: "#ffb5c2",
   },
 
   storagePrefix: "iqa_learning",
