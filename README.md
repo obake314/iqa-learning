@@ -66,3 +66,28 @@ ln -sfn /etc/nginx/sites-available/iqa-learning.eclo.info /etc/nginx/sites-enabl
 nginx -t
 systemctl reload nginx
 ```
+
+### SSL
+
+VPSではLet's Encrypt / Certbotで `https://iqa-learning.eclo.info` を有効化します。HTTPアクセスはHTTPSへリダイレクトします。
+
+```bash
+certbot --nginx -d iqa-learning.eclo.info --redirect
+```
+
+証明書はCertbotのsystemd timerで自動更新されます。
+
+### Database
+
+VPS上のPostgreSQLに、アプリ用のローカル接続専用DBを用意します。
+
+- Database: `iqa_learning`
+- User: `iqa_learning`
+- Connection file: `/root/iqa-learning-db.env`
+
+接続情報はrootだけが読めるように保存します。
+
+```bash
+chmod 600 /root/iqa-learning-db.env
+cat /root/iqa-learning-db.env
+```
