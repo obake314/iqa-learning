@@ -249,6 +249,24 @@ const renderMarkdownLite = (text = "") => {
   );
 };
 
+const thumbnailTone = (seed = "") =>
+  `tone-${Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 6}`;
+
+function ThumbnailArt({ src, title, label, variant = "course" }) {
+  return (
+    <div className={`thumbnail-art ${variant} ${thumbnailTone(title)}`}>
+      {src ? (
+        <img src={src} alt="" />
+      ) : (
+        <>
+          <span className="thumbnail-kicker">{label}</span>
+          <span className="thumbnail-title">{title}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Alert({ type, children }) {
   return <div className={`alert alert-${type}`} role={type === "error" ? "alert" : "status"}>{children}</div>;
 }
@@ -620,9 +638,9 @@ function Dashboard({ user, catalog, submissions, onSelect }) {
           const pct = Math.round((done / Math.max(courseLessons.length, 1)) * 100);
           return (
             <li className="course-card" key={course.id}>
+              <ThumbnailArt src={course.thumbnail} title={course.title} label={course.category || "Course"} />
               <div className="course-head">
-                {course.thumbnail && <img src={course.thumbnail} alt="" className="course-thumbnail" />}
-                <div className="course-meta" style={course.thumbnail ? { marginTop: 12 } : {}}>
+                <div className="course-meta">
                   <span className="pill">{course.category || "講座"}</span>
                   <span className="pill">{courseLessons.length}レッスン</span>
                 </div>
@@ -749,22 +767,24 @@ function CourseOutline({ user, course, submissions, onBack, onLesson, onDashboar
             const status = isDone ? "完了" : lp.videoWatched ? "学習中" : "未開始";
             return (
               <article className="lesson-card" key={lesson.id}>
-                {lesson.thumbnail && <img src={lesson.thumbnail} alt="" className="lesson-thumbnail" />}
-                <div className="course-meta">
-                  <span className="pill">Lesson {index + 1}</span>
-                  <span className={`pill ${isLocked ? "" : isDone ? "done" : lp.videoWatched ? "progress" : ""}`}>
-                    {isLocked ? "ロック中" : status}
-                  </span>
-                  {work && <span className={`pill ${work.status === "reviewed" ? "done" : "pending"}`}>{work.status === "reviewed" ? "添削済み" : "添削待ち"}</span>}
+                <div className="lesson-content">
+                  <div className="course-meta">
+                    <span className="pill">Lesson {index + 1}</span>
+                    <span className={`pill ${isLocked ? "" : isDone ? "done" : lp.videoWatched ? "progress" : ""}`}>
+                      {isLocked ? "ロック中" : status}
+                    </span>
+                    {work && <span className={`pill ${work.status === "reviewed" ? "done" : "pending"}`}>{work.status === "reviewed" ? "添削済み" : "添削待ち"}</span>}
+                  </div>
+                  <h3>{lesson.title}</h3>
+                  <p>{lesson.desc}</p>
+                  <div className="lesson-actions">
+                    <span className="pill">{lesson.duration}</span>
+                    <button className="btn-small" disabled={isLocked} onClick={() => onLesson(lesson)}>
+                      {isLocked ? "前のレッスン完了後に受講可能" : lp.videoWatched ? "続きを学ぶ" : "受講する"}
+                    </button>
+                  </div>
                 </div>
-                <h3>{lesson.title}</h3>
-                <p>{lesson.desc}</p>
-                <div className="lesson-actions">
-                  <span className="pill">{lesson.duration}</span>
-                  <button className="btn-small" disabled={isLocked} onClick={() => onLesson(lesson)}>
-                    {isLocked ? "前のレッスン完了後に受講可能" : lp.videoWatched ? "続きを学ぶ" : "受講する"}
-                  </button>
-                </div>
+                <ThumbnailArt src={lesson.thumbnail} title={lesson.title} label={`Lesson ${index + 1}`} variant="lesson" />
               </article>
             );
           })}

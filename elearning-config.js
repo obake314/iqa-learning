@@ -15,7 +15,7 @@ export const SITE_CONFIG = {
   name: "IQA Learning",
   subtitle: "IQA Learning Platform",
   passingScore: 70,
-  catalogVersion: "v4",
+  catalogVersion: "v5",
 
   theme: {
     accent: "#1e40af",
