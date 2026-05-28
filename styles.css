@@ -12,7 +12,10 @@
 	--logo-hi: #ffb5c2;
 	--accent-soft: #ffb5c2;
 	--radius: 0px;
-	--shadow: 0 14px 36px rgba(17, 29, 74, .08);
+	--shadow: none;
+  --font-base: "Helvetica Neue",Arial,"Hiragino Kaku Gothic ProN","Hiragino Sans",
+    "BIZ UDPGothic",
+    sans-serif;
 }
 *, *::before, *::after {
 	box-sizing: border-box;
@@ -21,7 +24,8 @@ body {
 	margin: 0;
 	background: var(--paper);
 	color: var(--ink);
-	font-family: 'Noto Sans JP', sans-serif;
+	font-family: var(--font-base);
+  font-weight: 500;
 	font-size: 16px;
 	line-height: 1.7;
 }
@@ -56,7 +60,7 @@ button {
 .header {
 	height: 64px;
 	padding: 0 28px;
-	background: var(--ink);
+	background: var(--accent);
 	color: white;
 	display: flex;
 	align-items: center;
@@ -401,14 +405,11 @@ textarea.form-input {
 .pill {
 	display: inline-flex;
 	align-items: center;
-	padding: 2px 8px;
 	font-size: 11px;
 	font-weight: 700;
-	background: #edf2ff;
 	color: var(--accent3);
 }
 .pill.admin {
-	background: #fff0f5;
 	color: var(--accent2);
 }
 .pill.developer {
@@ -624,7 +625,6 @@ textarea.form-input {
 	background: #ffffff;
 	border: 1px solid var(--line);
 	border-radius: var(--radius);
-	box-shadow: var(--shadow);
 }
 table {
 	border-collapse: collapse;

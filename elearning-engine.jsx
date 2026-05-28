@@ -53,6 +53,13 @@ const DEFAULT_MENTOR = {
 
 const canAdmin = (user) => user?.role === "admin";
 const canDevelop = (user) => user?.role === "developer";
+const canManageAccess = (user) => canAdmin(user) || canDevelop(user);
+const canTakeCourse = (user, course) => {
+  if (!user || !course) return false;
+  if (canManageAccess(user)) return true;
+  const allowed = Array.isArray(course.allowedUserIds) ? course.allowedUserIds : [];
+  return allowed.length === 0 || allowed.includes(user.id);
+};
 const initialsFor = (name = "") => name.trim().slice(0, 2).toUpperCase() || "IQA";
 const mentorProfileFromUser = (user) => ({
   id: `mentor_${user.id}`,
@@ -174,6 +181,13 @@ const getLessonProgress = (progress, userId, courseId, lessonId) =>
 const isLessonCompleted = (lessonProgress = {}) =>
   !!lessonProgress.completedAt &&
   (lessonProgress.quizPct === undefined || lessonProgress.quizPct >= SITE_CONFIG.passingScore);
+const hasLessonActivity = (lessonProgress = {}, submission) =>
+  !!lessonProgress.videoWatched ||
+  lessonProgress.quizPct !== undefined ||
+  !!lessonProgress.completedAt ||
+  !!lessonProgress.watchedAt ||
+  !!lessonProgress.lastAttemptAt ||
+  !!submission;
 const formatDateTime = (value) =>
   value ? new Date(value).toLocaleString("ja-JP", { dateStyle: "short", timeStyle: "short" }) : "-";
 const lessonStatus = (lessonProgress = {}) => {
@@ -507,7 +521,7 @@ function QuestionEditorSection({ questions, setQuestions }) {
 function LessonEditorPanel({ lesson, courseId, catalog, setCatalog, onDone, isNew = false }) {
   const [draft, setDraft] = useState({
     title: lesson?.title || "", desc: lesson?.desc || "", duration: lesson?.duration || "",
-    youtubeId: lesson?.youtubeId || "", thumbnail: lesson?.thumbnail || "",
+    videoUrl: lesson?.videoUrl || lesson?.youtubeId || "", thumbnail: lesson?.thumbnail || "",
     summary: lesson?.summary || "", workPrompt: lesson?.workPrompt || "",
   });
   const [questions, setQuestions] = useState(normalizeQs(lesson?.questions || []));
@@ -539,7 +553,7 @@ function LessonEditorPanel({ lesson, courseId, catalog, setCatalog, onDone, isNe
       <Field id="le-desc" label="説明" value={draft.desc} onChange={d("desc")} required={false} />
       <div className="two-col">
         <Field id="le-dur" label="動画時間" value={draft.duration} onChange={d("duration")} required={false} />
-        <Field id="le-yt" label="YouTube動画ID" value={draft.youtubeId} onChange={d("youtubeId")} required={false} />
+        <Field id="le-video" label="動画URL" value={draft.videoUrl} onChange={d("videoUrl")} required={false} />
       </div>
       <ThumbnailField id="le-thumb" value={draft.thumbnail} onChange={d("thumbnail")} />
       <div className="form-group">
@@ -797,6 +811,34 @@ function CourseOutline({ user, course, submissions, onBack, onLesson, onDashboar
 
 const FILE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB
 
+const youtubeEmbedFromUrl = (value = "") => {
+  const raw = value.trim();
+  if (!raw) return "";
+  const idOnly = /^[\w-]{11}$/.test(raw) ? raw : "";
+  if (idOnly) return `https://www.youtube-nocookie.com/embed/${idOnly}?rel=0&modestbranding=1`;
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1)}?rel=0&modestbranding=1`;
+    if (host.endsWith("youtube.com")) {
+      const videoId = url.searchParams.get("v") || url.pathname.match(/\/(?:embed|shorts)\/([^/?]+)/)?.[1];
+      return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1` : "";
+    }
+  } catch {
+    return "";
+  }
+  return "";
+};
+
+const getLessonVideo = (lesson) => {
+  const raw = (lesson.videoUrl || lesson.youtubeId || "").trim();
+  if (!raw) return { type: "empty" };
+  const youtubeSrc = youtubeEmbedFromUrl(raw);
+  if (youtubeSrc) return { type: "iframe", src: youtubeSrc };
+  if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(raw)) return { type: "video", src: raw };
+  return { type: "iframe", src: raw };
+};
+
 function LessonView({ user, course, lesson, submissions, refreshSubmissions, onBack, onDashboard }) {
   const [videoWatched, setVideoWatched] = useState(
     !!getLessonProgress(getProgress(), user.id, course.id, lesson.id).videoWatched
@@ -807,6 +849,7 @@ function LessonView({ user, course, lesson, submissions, refreshSubmissions, onB
   const [message, setMessage] = useState("");
   const fileInputRef = useRef(null);
   const existing = submissions.find((item) => item.userId === user.id && item.courseId === course.id && item.lessonId === lesson.id);
+  const lessonVideo = getLessonVideo(lesson);
 
   const markWatched = () => {
     upsertLessonProgress(user.id, course.id, lesson.id, { videoWatched: true, watchedAt: new Date().toISOString() });
@@ -879,15 +922,17 @@ function LessonView({ user, course, lesson, submissions, refreshSubmissions, onB
           <section aria-labelledby="video-heading">
             <h2 id="video-heading" className="page-sub" style={{ marginBottom: 10 }}>動画解説</h2>
             <div className="video-frame">
-              {lesson.youtubeId ? (
+              {lessonVideo.type === "iframe" ? (
                 <iframe
                   title={`${lesson.title}の動画`}
-                  src={`https://www.youtube-nocookie.com/embed/${lesson.youtubeId}?rel=0&modestbranding=1`}
+                  src={lessonVideo.src}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 />
+              ) : lessonVideo.type === "video" ? (
+                <video src={lessonVideo.src} controls />
               ) : (
-                <div className="video-empty">YouTube動画IDが未設定です</div>
+                <div className="video-empty">動画URLが未設定です</div>
               )}
             </div>
             {videoWatched ? (
@@ -1057,6 +1102,7 @@ function AdminView({ currentUser, catalog, setCatalog, submissions, refreshSubmi
     { id: "progress", label: "進捗確認" },
     { id: "submissions", label: "ワーク添削", badge: pendingSubs },
     { id: "mentor_assign", label: "メンター管理" },
+    { id: "access", label: "受講設定" },
     { id: "mentors", label: "プロフィール", badge: newMessages },
     { id: "materials", label: "レッスン管理" },
   ];
@@ -1075,6 +1121,7 @@ function AdminView({ currentUser, catalog, setCatalog, submissions, refreshSubmi
       {tab === "progress" && <ProgressAdmin catalog={catalog} submissions={submissions} />}
       {tab === "submissions" && <SubmissionAdmin currentUser={currentUser} catalog={catalog} submissions={submissions} refreshSubmissions={refreshSubmissions} />}
       {tab === "mentor_assign" && <MentorAssignAdmin currentUser={currentUser} catalog={catalog} />}
+      {tab === "access" && <CourseAccessAdmin catalog={catalog} setCatalog={setCatalog} />}
       {tab === "mentors" && <MentorAdmin currentUser={currentUser} catalog={catalog} myMentorId={myMentorId} />}
       {tab === "materials" && <MaterialAdmin catalog={catalog} setCatalog={setCatalog} />}
     </div>
@@ -1084,16 +1131,20 @@ function AdminView({ currentUser, catalog, setCatalog, submissions, refreshSubmi
 function ProgressAdmin({ catalog, submissions }) {
   const users = getUsers().filter((user) => user.role === "user");
   const progress = getProgress();
-  const lessonRows = users.flatMap((user) =>
-    catalog.flatMap((course) =>
-      course.lessons.map((lesson, index) => {
+  const courseRows = users.flatMap((user) =>
+    catalog.filter((course) => canTakeCourse(user, course)).flatMap((course) => {
+      const lessonStates = (course.lessons || []).map((lesson, index) => {
         const lessonProgress = getLessonProgress(progress, user.id, course.id, lesson.id);
         const submission = submissions.find((item) =>
           item.userId === user.id && item.courseId === course.id && item.lessonId === lesson.id
         );
         return { user, course, lesson, index, lessonProgress, submission };
-      })
-    )
+      });
+      if (!lessonStates.length || !hasLessonActivity(lessonStates[0].lessonProgress, lessonStates[0].submission)) return [];
+      const lastActiveIndex = lessonStates.reduce((lastIndex, state) =>
+        hasLessonActivity(state.lessonProgress, state.submission) ? state.index : lastIndex, -1);
+      return [{ user, course, visibleLessons: lessonStates.slice(0, Math.min(lessonStates.length, lastActiveIndex + 2)) }];
+    })
   );
 
   return (
@@ -1105,7 +1156,8 @@ function ProgressAdmin({ catalog, submissions }) {
             <thead><tr><th>受講者</th><th>進捗</th><th>完了</th><th>提出</th><th>添削済み</th></tr></thead>
             <tbody>
               {users.map((user) => {
-                const stats = calcStats(catalog, progress, user.id);
+                const userCatalog = catalog.filter((course) => canTakeCourse(user, course));
+                const stats = calcStats(userCatalog, progress, user.id);
                 const userSubs = submissions.filter((item) => item.userId === user.id);
                 return (
                   <tr key={user.id}>
@@ -1863,7 +1915,7 @@ export default function App() {
               <button className={`nav-btn ${view === "dashboard" ? "active" : ""}`} onClick={() => go("#/")}>講座一覧</button>
               {canAdmin(user) && <button className={`nav-btn ${view === "admin" ? "active" : ""}`} onClick={() => go("#/admin")}>メンター</button>}
               {canDevelop(user) && <button className={`nav-btn ${view === "developer" ? "active" : ""}`} onClick={() => go("#/developer")}>講座管理</button>}
-              <button className="nav-btn subtle" onClick={handleLogout}>{user?.name} / ログアウト</button>
+              <button className="nav-btn subtle" onClick={handleLogout}>ログアウト</button>
             </nav>
           )}
         </header>
