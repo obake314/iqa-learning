@@ -1180,41 +1180,39 @@ function ProgressAdmin({ catalog, submissions }) {
       </section>
 
       <section>
-        <h2 className="section-heading">レッスン別進捗</h2>
+        <h2 className="section-heading">講座別進捗</h2>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>受講者</th>
                 <th>講座</th>
-                <th>レッスン</th>
-                <th>状態</th>
-                <th>動画視聴</th>
-                <th>練習問題</th>
-                <th>完了日時</th>
-                <th>ワーク</th>
+                <th>レッスン進捗</th>
               </tr>
             </thead>
             <tbody>
-              {lessonRows.map(({ user, course, lesson, index, lessonProgress, submission }) => (
-                <tr key={`${user.id}-${course.id}-${lesson.id}`}>
-                  <td>{user.name}</td>
+              {courseRows.length === 0 && (
+                <tr><td colSpan={3} className="empty">まだ受講開始済みの講座はありません</td></tr>
+              )}
+              {courseRows.map(({ user, course, visibleLessons }) => (
+                <tr key={`${user.id}-${course.id}`}>
+                  <td>{user.name}<br /><span className="work-status">{user.email}</span></td>
                   <td>{course.title}</td>
-                  <td>Lesson {index + 1}<br />{lesson.title}</td>
                   <td>
-                    <span className={`pill ${isLessonCompleted(lessonProgress) ? "done" : lessonProgress.quizPct !== undefined ? "progress" : ""}`}>
-                      {lessonStatus(lessonProgress)}
-                    </span>
-                  </td>
-                  <td>{lessonProgress.videoWatched ? "済" : "-"}<br /><span className="work-status">{formatDateTime(lessonProgress.watchedAt)}</span></td>
-                  <td>
-                    {lessonProgress.quizPct !== undefined ? `${lessonProgress.quizScore}/${(lesson.questions || []).length} (${lessonProgress.quizPct}%)` : "-"}
-                    <br /><span className="work-status">{formatDateTime(lessonProgress.lastAttemptAt)}</span>
-                  </td>
-                  <td>{formatDateTime(lessonProgress.completedAt)}</td>
-                  <td>
-                    {submission ? (submission.status === "reviewed" ? "添削済み" : "添削待ち") : "-"}
-                    <br /><span className="work-status">{formatDateTime(submission?.submittedAt)}</span>
+                    <div className="progress-sequence">
+                      {visibleLessons.map(({ lesson, index, lessonProgress, submission }) => (
+                        <div className="lesson-progress-cell" key={lesson.id}>
+                          <span className="work-status">Lesson {index + 1}</span>
+                          <strong>{lesson.title}</strong>
+                          <span className={`pill ${isLessonCompleted(lessonProgress) ? "done" : lessonProgress.quizPct !== undefined || lessonProgress.videoWatched ? "progress" : ""}`}>
+                            {lessonStatus(lessonProgress)}
+                          </span>
+                          <span className="work-status">
+                            {submission ? (submission.status === "reviewed" ? "添削済み" : "添削待ち") : formatDateTime(lessonProgress.completedAt)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </td>
                 </tr>
               ))}
