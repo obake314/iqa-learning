@@ -18,20 +18,21 @@ export const SITE_CONFIG = {
   name: "IQA Learning",
   subtitle: "IQA Learning Platform",
   passingScore: 70,
+  catalogVersion: "v5",
 
   theme: {
-    accent: "#1e40af",
-    accent2: "#b91c1c",
-    accent3: "#0369a1",
-    headerLogoHighlight: "#38bdf8",
+    accent: "#3777ff",
+    accent2: "#dd2280",
+    accent3: "#111d4a",
+    headerLogoHighlight: "#ffb5c2",
   },
 
-  storagePrefix: "seclearn_platform",
+  storagePrefix: "iqa_learning",
 
   demoAccounts: [
-    { label: "開発者", role: "developer", email: "dev@sec.example", password: "dev12345" },
-    { label: "管理者", role: "admin", email: "admin@sec.example", password: "admin123" },
-    { label: "受講者デモ", role: "user", email: "learner@sec.example", password: "learner1" },
+    { label: "開発者", role: "developer", email: "dev@iqa-learning.example", password: "dev12345" },
+    { label: "メンター", role: "admin", email: "mentor@iqa-learning.example", password: "mentor123" },
+    { label: "受講者", role: "user", email: "learner@iqa-learning.example", password: "learner1" },
   ],
 };
 
