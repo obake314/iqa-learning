@@ -669,8 +669,21 @@ function Dashboard({ user, catalog, submissions, onSelect }) {
 
   return (
     <div className="page">
-      <h1 className="page-title">こんにちは、{user.name}さん</h1>
-      <p className="page-sub">受講したい講座を選び、動画・サマリー・練習問題・ワークを進めましょう</p>
+      <div className="page-greeting">
+        <div className="page-greeting-text">
+          <h1>こんにちは、{user.name}さん</h1>
+          <p>受講したい講座を選び、動画・サマリー・練習問題・ワークを進めましょう</p>
+        </div>
+        <div className="page-greeting-actions">
+          <button className="icon-btn" aria-label="通知" title="通知">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M9 2a5.5 5.5 0 00-5.5 5.5v3L2 12v1h14v-1l-1.5-1.5v-3A5.5 5.5 0 009 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+              <path d="M7.5 14.5a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            {pendingWork > 0 && <span className="notif-badge">{pendingWork}</span>}
+          </button>
+        </div>
+      </div>
       <div className="stats-row" aria-label="学習状況">
         <Stat accent value={`${stats.pct}%`} label="全体の進捗" />
         <Stat value={stats.done} label="完了レッスン" />
@@ -2008,23 +2021,84 @@ export default function App() {
     }
   }
 
+  const isAuth = page === "app";
+
   return (
     <>
       <a className="skip-link" href="#main-content">メインコンテンツへスキップ</a>
-      <div className="app-shell">
-        <header className="header">
-          <button className="header-logo" style={{ background:"none", border:0, color:"white", cursor:"pointer" }} onClick={() => go("#/")}>
-            {SITE_CONFIG.name}<span>.</span>
-          </button>
-          {page === "app" && (
-            <nav className="header-nav" aria-label="メインナビゲーション">
-              <button className={`nav-btn ${view === "dashboard" ? "active" : ""}`} onClick={() => go("#/")}>講座一覧</button>
-              {canAdmin(user) && <button className={`nav-btn ${view === "admin" ? "active" : ""}`} onClick={() => go("#/admin")}>メンター</button>}
-              {canDevelop(user) && <button className={`nav-btn ${view === "developer" ? "active" : ""}`} onClick={() => go("#/developer")}>講座管理</button>}
-              <button className="nav-btn subtle" onClick={handleLogout}>ログアウト</button>
-            </nav>
-          )}
-        </header>
+      <div className={`app-shell${isAuth ? " app-shell--auth" : ""}`}>
+
+        {isAuth && (
+          <nav className="sidebar-nav" aria-label="サイドバーナビゲーション">
+            <button
+              className="sidebar-logo-btn"
+              onClick={() => go("#/")}
+              title={SITE_CONFIG.name}
+              aria-label="ホームに戻る"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <rect x="2" y="2" width="7" height="7" rx="2" fill="currentColor"/>
+                <rect x="11" y="2" width="7" height="7" rx="2" fill="currentColor" opacity=".55"/>
+                <rect x="2" y="11" width="7" height="7" rx="2" fill="currentColor" opacity=".55"/>
+                <rect x="11" y="11" width="7" height="7" rx="2" fill="currentColor" opacity=".3"/>
+              </svg>
+            </button>
+
+            <div className="sidebar-menu">
+              <button
+                className={`sidebar-icon${view === "dashboard" ? " active" : ""}`}
+                onClick={() => go("#/")}
+                title="講座一覧"
+                aria-label="講座一覧"
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M3 10.5L10 4l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1v-6.5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" fill="none"/>
+                  <path d="M7.5 18v-5a.5.5 0 01.5-.5h4a.5.5 0 01.5.5v5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+              </button>
+
+              {canAdmin(user) && (
+                <button
+                  className={`sidebar-icon${view === "admin" ? " active" : ""}`}
+                  onClick={() => go("#/admin")}
+                  title="メンター管理"
+                  aria-label="メンター管理"
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="6.5" r="3" stroke="currentColor" strokeWidth="1.6"/>
+                    <path d="M3.5 17c0-3.314 2.91-6 6.5-6s6.5 2.686 6.5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              )}
+
+              {canDevelop(user) && (
+                <button
+                  className={`sidebar-icon${view === "developer" ? " active" : ""}`}
+                  onClick={() => go("#/developer")}
+                  title="講座管理"
+                  aria-label="講座管理"
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6"/>
+                    <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            <div className="sidebar-spacer" />
+
+            <button
+              className="sidebar-avatar"
+              onClick={handleLogout}
+              title={`${user.name}（ログアウト）`}
+              aria-label="ログアウト"
+            >
+              {initialsFor(user.name)}
+            </button>
+          </nav>
+        )}
+
         <main id="main-content" className="main-content" tabIndex={-1} ref={mainRef}>
           {page === "login"    && <LoginView onLogin={handleLogin} onGoto={(p) => go(`#/${p}`)} />}
           {page === "register" && <RegisterView onGoto={(p) => go(`#/${p}`)} />}
