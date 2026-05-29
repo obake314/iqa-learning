@@ -189,6 +189,10 @@ button { cursor: pointer; }
   transform: scale(1.1);
   box-shadow: 0 4px 16px rgba(127, 99, 216, 0.25);
 }
+.sidebar-avatar.active {
+  box-shadow: 0 0 0 2px var(--accent), 0 4px 16px rgba(127, 99, 216, 0.25);
+  transform: scale(1.05);
+}
 
 /* ─── Main area ───────────────────────────────────────────── */
 .main-content {

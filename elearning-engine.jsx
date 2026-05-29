@@ -1148,7 +1148,7 @@ function AdminView({ currentUser, catalog, setCatalog, submissions, refreshSubmi
     { id: "submissions", label: "ワーク添削", badge: pendingSubs },
     { id: "mentor_assign", label: "メンター管理" },
     { id: "access", label: "受講設定" },
-    { id: "mentors", label: "プロフィール", badge: newMessages },
+    { id: "mentors", label: "受信メッセージ", badge: newMessages },
     { id: "materials", label: "レッスン管理" },
   ];
 
@@ -1474,13 +1474,175 @@ function MentorAssignAdmin({ currentUser, catalog }) {
   );
 }
 
-function MentorAdmin({ currentUser, catalog, myMentorId }) {
-  const [mentors, setMentors] = useState(ensureMentors);
-  const existing = mentors.find((mentor) => mentor.userId === currentUser.id);
-  const profile = existing || mentorProfileFromUser(currentUser);
-  const [draft, setDraft] = useState(profile);
+function ProfileView({ user, onLogout, onUserUpdate }) {
+  const isImage = (v = "") => /^(https?:\/\/|data:image\/)/.test(v);
+
+  const initDraft = () => ({
+    name: user.name || "",
+    email: user.email || "",
+    password: "",
+    confirmPassword: "",
+    bio: user.bio || "",
+    icon: user.icon || "",
+  });
+
+  const [draft, setDraft] = useState(initDraft);
   const [status, setStatus] = useState("");
-  const [messages, setMessages] = useState(() => getMentorMessages().filter((m) => m.mentorId === profile.id));
+  const [error, setError] = useState("");
+
+  const set = (key, val) => setDraft((prev) => ({ ...prev, [key]: val }));
+
+  const handleIconFile = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = (ev) => set("icon", ev.target.result);
+    r.readAsDataURL(f);
+  };
+
+  const save = (e) => {
+    e.preventDefault();
+    setError(""); setStatus("");
+    if (!draft.name.trim()) { setError("名前を入力してください"); return; }
+    if (!draft.email.includes("@")) { setError("有効なメールアドレスを入力してください"); return; }
+    if (draft.password && draft.password.length < 8) { setError("パスワードは8文字以上にしてください"); return; }
+    if (draft.password && draft.password !== draft.confirmPassword) { setError("パスワードが一致しません"); return; }
+    const users = getUsers();
+    if (users.some((u) => u.email === draft.email && u.id !== user.id)) {
+      setError("このメールアドレスは既に使用されています"); return;
+    }
+    const patch = {
+      name: draft.name.trim(),
+      email: draft.email.trim(),
+      bio: draft.bio.trim(),
+      icon: draft.icon,
+      ...(draft.password ? { password: draft.password } : {}),
+    };
+    const nextUsers = users.map((u) => u.id === user.id ? { ...u, ...patch } : u);
+    saveUsers(nextUsers);
+    const updatedUser = { ...user, ...patch };
+    setCurrentUser(updatedUser);
+    // mentor profile の name・icon・intro も同期
+    const mentors = getMentors();
+    const myMentor = mentors.find((m) => m.userId === user.id);
+    if (myMentor) {
+      const nextMentor = {
+        ...myMentor,
+        name: patch.name,
+        icon: patch.icon || initialsFor(patch.name),
+        intro: patch.bio || myMentor.intro,
+      };
+      saveMentors(mentors.map((m) => m.userId === user.id ? nextMentor : m));
+    }
+    setDraft((prev) => ({ ...prev, password: "", confirmPassword: "" }));
+    setStatus("プロフィールを保存しました");
+    onUserUpdate(updatedUser);
+  };
+
+  const avatarSrc = draft.icon && isImage(draft.icon) ? draft.icon : null;
+  const avatarInitials = initialsFor(draft.name || user.name);
+
+  return (
+    <div className="page" style={{ maxWidth: 560 }}>
+      <div className="page-greeting">
+        <div className="page-greeting-text">
+          <h1 className="page-title">プロフィール設定</h1>
+          <p className="page-sub">アカウント情報とプロフィールを編集できます</p>
+        </div>
+      </div>
+
+      {/* avatar preview */}
+      <div className="panel" style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+          <div
+            style={{
+              width: 72, height: 72, borderRadius: "50%",
+              background: avatarSrc ? "transparent" : "var(--lavender)",
+              color: "var(--accent)", display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 26, fontWeight: 800,
+              overflow: "hidden", flexShrink: 0, border: "2px solid var(--lavender-mid)",
+            }}
+          >
+            {avatarSrc
+              ? <img src={avatarSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : avatarInitials}
+          </div>
+          <div>
+            <p style={{ margin: "0 0 8px", fontWeight: 700, fontSize: 15 }}>{draft.name || user.name}</p>
+            <label
+              style={{
+                display: "inline-block", cursor: "pointer",
+                background: "var(--lavender)", color: "var(--accent)",
+                borderRadius: "var(--r-btn)", padding: "6px 14px",
+                fontSize: 13, fontWeight: 700,
+              }}
+            >
+              画像を変更
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleIconFile} />
+            </label>
+            {draft.icon && (
+              <button
+                type="button"
+                onClick={() => set("icon", "")}
+                style={{ marginLeft: 8, background: "none", border: "none", color: "var(--text-sub)", fontSize: 12, cursor: "pointer" }}
+              >
+                削除
+              </button>
+            )}
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--text-sub)" }}>JPG・PNG・GIF・WebP（推奨: 正方形）</p>
+          </div>
+        </div>
+
+        <form onSubmit={save} noValidate>
+          <div className="two-col">
+            <Field id="pf-name" label="名前" value={draft.name} onChange={(v) => set("name", v)} />
+            <Field id="pf-email" label="メールアドレス" type="email" value={draft.email} onChange={(v) => set("email", v)} />
+          </div>
+          <div className="two-col">
+            <Field id="pf-pw" label="新しいパスワード（変更する場合）" type="password" value={draft.password} onChange={(v) => set("password", v)} required={false} />
+            <Field id="pf-pw2" label="パスワード（確認）" type="password" value={draft.confirmPassword} onChange={(v) => set("confirmPassword", v)} required={false} />
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="pf-bio">プロフィール</label>
+            <textarea
+              id="pf-bio"
+              className="form-input"
+              value={draft.bio}
+              onChange={(e) => set("bio", e.target.value)}
+              placeholder="自己紹介や学習目標など"
+              style={{ minHeight: 80 }}
+            />
+          </div>
+          {error  && <Alert type="error">{error}</Alert>}
+          {status && <Alert type="success">{status}</Alert>}
+          <div style={{ display: "flex", gap: 10, justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+            <button className="btn-primary" type="submit" style={{ width: "auto", padding: "11px 28px" }}>
+              保存する
+            </button>
+            <button
+              type="button"
+              onClick={onLogout}
+              style={{
+                background: "none", border: "1px solid rgba(239,90,168,0.25)",
+                borderRadius: "var(--r-btn)", padding: "10px 18px",
+                color: "var(--accent-pink)", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              }}
+            >
+              ログアウト
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function MentorAdmin({ currentUser, catalog, myMentorId }) {
+  const profile = ensureMentors().find((m) => m.userId === currentUser.id)
+    || mentorProfileFromUser(currentUser);
+  const [messages, setMessages] = useState(
+    () => getMentorMessages().filter((m) => m.mentorId === profile.id)
+  );
 
   const markRead = (msgId) => {
     const updated = getMentorMessages().map((m) => m.id === msgId ? { ...m, status: "read" } : m);
@@ -1488,84 +1650,8 @@ function MentorAdmin({ currentUser, catalog, myMentorId }) {
     setMessages(updated.filter((m) => m.mentorId === profile.id));
   };
 
-  useEffect(() => {
-    setDraft(profile);
-    setStatus("");
-  }, [profile.id]);
-
-  const saveProfile = (event) => {
-    event.preventDefault();
-    if (!draft.name.trim() || !draft.intro.trim()) {
-      setStatus("名前とプロフィールを入力してください");
-      return;
-    }
-    const nextProfile = {
-      ...profile,
-      name: draft.name.trim(),
-      icon: draft.icon.trim() || initialsFor(draft.name),
-      intro: draft.intro.trim(),
-    };
-    const nextMentors = mentors.some((mentor) => mentor.userId === currentUser.id)
-      ? mentors.map((mentor) => mentor.userId === currentUser.id ? nextProfile : mentor)
-      : [nextProfile, ...mentors];
-    saveMentors(nextMentors);
-    setMentors(nextMentors);
-    setDraft(nextProfile);
-    setStatus("プロフィールを保存しました");
-  };
-
   return (
     <div className="stack">
-      <section className="panel">
-        <h2>自分のメンタープロフィール</h2>
-        <div className="mentor-profile" style={{ marginBottom: 18 }}>
-          <MentorIcon mentor={draft} />
-          <div>
-            <h3 className="mentor-name">{draft.name}</h3>
-            <p className="mentor-intro">{draft.intro}</p>
-          </div>
-        </div>
-        <form onSubmit={saveProfile}>
-          <div className="two-col">
-            <Field
-              id="my-mentor-name"
-              label="表示名"
-              value={draft.name}
-              onChange={(value) => setDraft({ ...draft, name: value })}
-            />
-            <div className="form-group">
-              <label className="form-label" htmlFor="my-mentor-icon">アイコン画像</label>
-              <input
-                id="my-mentor-icon"
-                type="file"
-                accept="image/*"
-                className="form-input"
-                style={{ padding: "8px 12px" }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => setDraft((prev) => ({ ...prev, icon: ev.target.result }));
-                  reader.readAsDataURL(file);
-                }}
-              />
-              <p className="work-status" style={{ marginTop: 4 }}>JPG・PNG・GIF・WebP（推奨: 正方形）</p>
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label" htmlFor="my-mentor-intro">プロフィール</label>
-            <textarea
-              id="my-mentor-intro"
-              className="form-input"
-              value={draft.intro}
-              onChange={(event) => setDraft({ ...draft, intro: event.target.value })}
-            />
-          </div>
-          {status && <p className="work-status" role="status">{status}</p>}
-          <button className="btn-small" type="submit">プロフィールを保存</button>
-        </form>
-      </section>
-
       <section>
         <h2 className="section-heading">
           自分への相談
@@ -1579,8 +1665,8 @@ function MentorAdmin({ currentUser, catalog, myMentorId }) {
               <thead><tr><th>日時</th><th>受講者</th><th>講座</th><th>相談内容</th><th>状態</th></tr></thead>
               <tbody>
                 {messages.map((message) => {
-                  const sender = getUsers().find((user) => user.id === message.userId);
-                  const course = catalog.find((item) => item.id === message.courseId);
+                  const sender = getUsers().find((u) => u.id === message.userId);
+                  const course = catalog.find((c) => c.id === message.courseId);
                   return (
                     <tr key={message.id} style={{ background: message.status === "open" ? "#fefce8" : "" }}>
                       <td>{formatDateTime(message.createdAt)}</td>
@@ -1994,6 +2080,7 @@ export default function App() {
 
   const handleLogin = (nextUser) => { setUser(nextUser); go("#/"); };
   const handleLogout = () => { setCurrentUser(null); setUser(null); go("#/login"); };
+  const handleUserUpdate = (nextUser) => setUser(nextUser);
 
   // ハッシュからルートを導出
   const segments = hash.replace(/^#\/?/, "").split("/").filter(Boolean);
@@ -2003,7 +2090,9 @@ export default function App() {
     page = segments[0] === "register" ? "register" : segments[0] === "remind" ? "remind" : "login";
   } else {
     page = "app";
-    if (segments[0] === "admin" && canAdmin(user)) {
+    if (segments[0] === "profile") {
+      view = "profile";
+    } else if (segments[0] === "admin" && canAdmin(user)) {
       view = "admin";
     } else if (segments[0] === "developer" && canDevelop(user)) {
       view = "developer";
@@ -2089,12 +2178,14 @@ export default function App() {
             <div className="sidebar-spacer" />
 
             <button
-              className="sidebar-avatar"
-              onClick={handleLogout}
-              title={`${user.name}（ログアウト）`}
-              aria-label="ログアウト"
+              className={`sidebar-avatar${view === "profile" ? " active" : ""}`}
+              onClick={() => go("#/profile")}
+              title={`${user.name} — プロフィール設定`}
+              aria-label="プロフィール設定"
             >
-              {initialsFor(user.name)}
+              {user.icon && /^(https?:\/\/|data:image\/)/.test(user.icon)
+                ? <img src={user.icon} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+                : initialsFor(user.name)}
             </button>
           </nav>
         )}
@@ -2103,6 +2194,9 @@ export default function App() {
           {page === "login"    && <LoginView onLogin={handleLogin} onGoto={(p) => go(`#/${p}`)} />}
           {page === "register" && <RegisterView onGoto={(p) => go(`#/${p}`)} />}
           {page === "remind"   && <RemindView onGoto={(p) => go(`#/${p}`)} />}
+          {page === "app" && view === "profile" && (
+            <ProfileView user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
+          )}
           {page === "app" && view === "dashboard" && (
             <Dashboard
               user={user} catalog={catalog} submissions={submissions}
